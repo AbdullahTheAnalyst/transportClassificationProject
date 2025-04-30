@@ -4,30 +4,29 @@ from fastai.vision.all import *
 import platform
 import pathlib
 
+# WindowsPath masalasini hal qilish (Linux uchun)
 plt = platform.system()
 if plt == "Linux":
-  pathlib.WindowsPath = pathlib.PosixPath
+    pathlib.WindowsPath = pathlib.PosixPath
 
-
-# title
 st.title("Transportni Classification qiluvchi model")
 
-# rasmni joylash
-file = st.file_uploader("Rasm yuklash", 
-                 type = ["png", "jpeg", "gif", "svg"])
-st.image(file)
-# PIL convert qilish, agar mavjud bo'lsa
+# Modelni kesh bilan yuklash
+@st.cache_resource
+def load_model():
+    return load_learner("transport_model.pkl")
+
+model = load_model()
+
+# Rasm yuklash
+file = st.file_uploader("Rasm yuklash", type=["png", "jpeg", "jpg"])
 if file is not None:
+    st.image(file)
     img = PILImage.create(file)
 
-# modelni yuklash fastai orqali
-model = load_learner("transport_model.pkl")
+    pred, pred_id, probs = model.predict(img)
+    st.success(f"Bashorat: {pred}")
+    st.info(f"Ehtimollik: {probs[pred_id]*100:.1f}%")
 
-# prediction
-pred, pred_id, probs = model.predict(img)
-st.success(f"Bashorat: {pred}")
-st.info(f"Ehtimollik: {probs[pred_id]*100:.1f}%")
-
-# plotitng
-figure = px.bar(x = probs * 100, y = model.dls.vocab)
-st.plotly_chart(figure)
+    fig = px.bar(x=probs * 100, y=model.dls.vocab, orientation='h')
+    st.plotly_chart(fig)
